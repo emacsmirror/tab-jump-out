@@ -25,7 +25,6 @@ modes that do not support this, you may need to toggle the mode off or use the s
 
 The tab-jump-out package is available on MELPA, so you can install with:
 
-
     M-x package-install [RET] smart-tab-over [RET]
 
    If you are using use-package, you can use this to enable globally:
@@ -37,11 +36,20 @@ The tab-jump-out package is available on MELPA, so you can install with:
 If you want to install it only in some modes, don't enable global mode.  Add a hook to the
 packages you want to use it in and call `(tab-jump-out-mode)`.
 
-## With yasnippet
+## With ya-snippet
 
-If you are using yasnippet, you may not want enable tab-jump-out-mode, but instead use the
-fallback:
+When editing a snippet template, tab moves between fields.  If the character after a field is
+one tab-jump-out would normally jump over, it does so and disables template editing.  For
+example, a Python function template might look like this:
 
-    (setq yas-fallback-behavior '(apply tab-jump-out 1))
+    def {1}({2}):
+        {0}
 
-This ensures yasnippet runs before tab-jump-out.
+On solution is to disable tab-jump-out while expanding a template like so:
+
+    (add-hook 'yas-before-expand-snippet-hook (lambda() (tab-jump-out-mode -1)))
+    (add-hook 'yas-after-exit-snippet-hook (lambda() (tab-jump-out-mode 1)))
+
+This unconditionally re-enables it instead of checking if it was enabled.  If you sometimes
+disable it or you don't use it globally, use a local variable that is set in the before hook if
+the mode was on.  Only re-enable it in the exit hook of the local variable is set.
