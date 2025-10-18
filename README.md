@@ -1,55 +1,93 @@
-# Tab jump out
+# tab-jump-out
 
-Smart tab over is an Emacs minor mode that, when enabled, causes TAB to "jump over" closing
-parentheses, braces, quotes, and some other punctuation.
+[![MELPA](https://melpa.org/packages/tab-jump-out-badge.svg)](https://melpa.org/#/tab-jump-out)
 
-I use Emacs' `electric-pair-mode` which means entering an open parenthesis causes the closing one
-to be entered also.  When I finish typing the contents, the cursor is now inside the
-parentheses and I want to move out.  With `electric-pair-mode`, the standard way is to type the
-closing parenthesis which causes the cursor to move past it:
+**tab-jump-out** is a small Emacs minor mode that makes the `TAB` key “jump out” of closing
+parentheses, braces, quotes, and similar punctuation.
 
-With this mode, pressing TAB will do the same thing.  It sounds small, and it is, but there is
-something very pleasing about it for me.  Some of the closing characters require holding shift
-or moving off the home row, but TAB is easy to hit.
+`tab-jump-out` is simple but satisfying — once you start using it, `TAB` will feel like the
+natural way to step out of parentheses and quotes.
 
-The characters it will jump over are:
+## Overview
+
+When using Emacs’ built-in `electric-pair-mode`, typing an opening parenthesis automatically inserts
+the matching closing one, leaving the cursor inside the pair. Normally, you would type the closing
+character again to move past it:
+
+    (|) → ()|
+
+With **tab-jump-out** enabled, pressing `TAB` performs that jump for you — no need to reach for
+Shift or move off the home row. It’s a small change, but one that feels very natural once you try
+it.
+
+By default, `TAB` will jump over any of these characters:
 
     } ] ) > : ; ` ' "
 
+This can be configured with the `tab-jump-out-delimiters` variable.  The variable is
+[buffer-local](https://www.gnu.org/software/emacs/manual/html_node/elisp/Buffer_002dLocal-Variables.html)
+so it can have different values for different modes.
+
+### Indentation behavior
+
 If you need to indent a line that starts with one of these characters, remember that Emacs'
 will indent the entire line if you press TAB anywhere on the line in most programming modes.
-If pressing TAB jumps over a character and you wanted to indent, just press TAB again.  In
-modes that do not support this, you may need to toggle the mode off or use the spacebar.
+If pressing TAB jumps over a character and you wanted to indent, just press TAB again.
 
-# Installation
+In modes that don’t support indentation with `TAB`, you can temporarily disable
+`tab-jump-out-mode`, use the spacebar to adjust alignment manually, or use rigid-indent-mode
+(C-x TAB).
 
-The tab-jump-out package is available on MELPA, so you can install with:
+## Installation
 
-    M-x package-install [RET] smart-tab-over [RET]
+The package is available on [MELPA](https://melpa.org/), so you can install it with:
 
-   If you are using use-package, you can use this to enable globally:
+    M-x package-install [RET] tab-jump-out [RET]
 
-   (use-package tab-jump-out
-     :ensure t
-     :config (tab-jump-out-global-mode 1))
+If you are using `use-package`, you can use this to enable globally:
 
-If you want to install it only in some modes, don't enable global mode.  Add a hook to the
-packages you want to use it in and call `(tab-jump-out-mode)`.
+``` elisp
+(use-package tab-jump-out
+  :ensure t
+  :config 
+  (tab-jump-out-global-mode 1))
+```
 
-## With ya-snippet
+If you only want it enabled in certain modes, don’t enable global mode.
+Instead, add a hook to those modes:
 
-When editing a snippet template, tab moves between fields.  If the character after a field is
-one tab-jump-out would normally jump over, it does so and disables template editing.  For
-example, a Python function template might look like this:
+``` elisp
+(add-hook 'python-mode-hook #'tab-jump-out-mode)
+```
 
-    def {1}({2}):
+You can also do this in use-package with the `:hooks` keyword.
+
+## Interaction with ya-snippet
+
+When editing a snippet template, `TAB` is used to jump between snippet fields.  If the
+character following a field is one `tab-jump-out` would normally jump over, it does so and will
+exit snippet editing early.  
+
+For example, consider a Python snippet like:
+
+    def {1:function_name}({2:args}):
         {0}
 
-On solution is to disable tab-jump-out while expanding a template like so:
+In this case, you can temporarily disable tab-jump-out while expanding snippets:
 
-    (add-hook 'yas-before-expand-snippet-hook (lambda() (tab-jump-out-mode -1)))
-    (add-hook 'yas-after-exit-snippet-hook (lambda() (tab-jump-out-mode 1)))
+``` elisp
+(add-hook 'yas-before-expand-snippet-hook 
+          (lambda() (tab-jump-out-mode -1)))
+(add-hook 'yas-after-exit-snippet-hook 
+          (lambda() (tab-jump-out-mode 1)))
+```
 
-This unconditionally re-enables it instead of checking if it was enabled.  If you sometimes
-disable it or you don't use it globally, use a local variable that is set in the before hook if
-the mode was on.  Only re-enable it in the exit hook of the local variable is set.
+
+This unconditionally re-enables the mode afterward.  If you don't use it globally or sometimes
+disable it manually, track its prior state in a local variable and re-enable it only if it was
+previously active.
+
+## License
+
+tab-jump-out is distributed under the MIT License.
+See the LICENSE file for details.
