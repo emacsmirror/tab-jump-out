@@ -3,7 +3,7 @@
 ;; Copyright (C) 2015 Zhang Kai Yu
 ;; Copyright (C) 2023 Michael Kleehammer
 ;;
-;; Version: 2.0.1
+;; Version: 2.1.0
 ;; Author: Zhang Kai Yu <yeannylam@gmail.com>
 ;; Maintainer: Michael Kleehammer <michael@kleehammer.com>
 ;; URL: https://github.com/mkleehammer/tab-jump-out
@@ -110,61 +110,27 @@
   ;; so we don't have the word "jump" in there twice which sounds too busy.
   "The characters that tab will move past to jump out.")
 
-(defun tab-jump-out-fallback ()
-  "Fallback behavior of `tab-jump-out'."
-  (let ((fallback-behavior (tab-jump-out-original-keybinding)))
-    (if fallback-behavior
-        (call-interactively fallback-behavior))))
-
-(defun tab-jump-out-original-keybinding ()
-  "Get current keys' binding as if `tab-jump-out-' didn't exist."
-  ;; Copied from yasnippet
-  ;;
-  ;; Normally we're called by the Tab key, so this is looking for the function
-  ;; that is normally bound to Tab.  We find it by temporarily turning off
-  ;; tab-jump-out-mode and searching the keymaps.
-  (let* ((tab-jump-out-mode nil)
-         (keys (this-single-command-keys)))
-    (or (key-binding keys t)
-        (key-binding (tab-jump-out--fallback-translate-input keys) t))))
-
-(defun tab-jump-out--fallback-translate-input (keys)
-  "Emulate `read-key-sequence', at least what I think it does.
-
-KEYS should be an untranslated key vector.  Returns a translated
-vector of keys."
-  ;; Copied from yasnippet
-  (let ((retval [])
-        (i 0))
-    (while (< i (length keys))
-      (let ((j i)
-            (translated local-function-key-map))
-        (while (and (< j (length keys))
-                    translated
-                    (keymapp translated))
-          (setq translated (cdr (assoc (aref keys j) (remove 'keymap translated)))
-                j (1+ j)))
-        (setq retval (vconcat retval (cond ((symbolp translated)
-                                            `[,translated])
-                                           ((vectorp translated)
-                                            translated)
-                                           (t
-                                            (substring keys i j)))))
-        (setq i j)))
-    retval))
-
 ;;;###autoload
 (defun tab-jump-out ()
-  "Use tab to jump out."
+  "Jump over the delimiter at point."
   (interactive)
-  (if (and (char-after)
-           (member (char-to-string (char-after)) tab-jump-out-delimiters))
-      (forward-char 1)
-    (tab-jump-out-fallback)))
+  (forward-char 1))
+
+(defun tab-jump-out--on-delimiter-p ()
+  "Return non-nil if point is on a delimiter character."
+  (and (char-after)
+       (member (char-to-string (char-after)) tab-jump-out-delimiters)))
 
 (defvar tab-jump-out-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [tab] 'tab-jump-out)
+    ;; The filter ensures the key binding is only enabled when the cursor is on
+    ;; one of the tab-jump-out-delimiters.  If you bind this to a different key,
+    ;; be sure to copy the filter.
+    (define-key map [tab]
+      `(menu-item "" tab-jump-out
+        :filter ,(lambda (cmd)
+                   (when (tab-jump-out--on-delimiter-p)
+                     cmd))))
     map)
   "Keymap for `tab-jump-out-mode'.")
 
